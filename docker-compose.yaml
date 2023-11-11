@@ -1,0 +1,52 @@
+version: "3.8"
+
+volumes:
+  pg_volume:
+  pg_test_volume:
+
+services:
+  go:
+    build:
+      context: .
+      dockerfile: go.Dockerfile
+    networks:
+      - banking-system
+
+  pg:
+    image: postgres:15-alpine3.18
+    restart: always
+    environment:
+      - "POSTGRES_DB=${PG_DB_NAME}"
+      - "POSTGRES_USER=${PG_USER}"
+      - "POSTGRES_PASSWORD=${PG_PASSWORD}"
+    ports:
+      - "${PG_PORT}:5432"
+    volumes:
+      - pg_volume:/var/lib/postgresql/data
+    networks:
+      - banking-system
+
+  pg-test:
+    image: postgres:15-alpine3.18
+    restart: always
+    environment:
+      - "POSTGRES_DB=${PG_DB_NAME}"
+      - "POSTGRES_USER=${PG_USER}"
+      - "POSTGRES_PASSWORD=${PG_PASSWORD}"
+    ports:
+      - "${PG_PORT_TEST}:5432"
+    volumes:
+      - pg_test_volume:/var/lib/postgresql/data
+    networks:
+      - banking-system
+
+  migrator:
+    build:
+      context: .
+      dockerfile: migration.Dockerfile
+    restart: on-failure
+
+networks:
+  banking-system:
+    name: banking-system
+    external: true
