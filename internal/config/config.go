@@ -1,30 +1,32 @@
 package config
 
-import (
-	"github.com/joho/godotenv"
+const (
+	AppEnv = "APP_ENV"
 )
 
-func Load(path string) error {
-	err := godotenv.Load(path)
-	if err != nil {
-		return err
+type Config struct {
+	Server struct {
+		GRPC struct {
+			Port string
+			Host string
+		}
+		HTTP struct {
+			Port string
+			Host string
+		}
+		Swagger struct {
+			Port string
+			Host string
+		}
 	}
-
-	return nil
-}
-
-type SwaggerConfig interface {
-	Address() string
-}
-
-type PGConfig interface {
-	DSN() string
-}
-
-type GRPCConfig interface {
-	Address() string
-}
-
-type HTTPConfig interface {
-	Address() string
+	PG struct {
+		DSN string
+	}
+	Redis struct {
+		DSN string
+	}
+	Kafka struct {
+		DSN string
+	}
+	AuthTokenSignKey string
 }

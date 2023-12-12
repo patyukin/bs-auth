@@ -1,9 +1,9 @@
 package user
 
 import (
-	"github.com/patyukin/banking-system/auth/internal/client/db"
-	"github.com/patyukin/banking-system/auth/internal/repository"
-	"github.com/patyukin/banking-system/auth/internal/service"
+	"github.com/patyukin/bs-auth/internal/client/db"
+	"github.com/patyukin/bs-auth/internal/repository"
+	"github.com/patyukin/bs-auth/internal/service"
 )
 
 type serv struct {

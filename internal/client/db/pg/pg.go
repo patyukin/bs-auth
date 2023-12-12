@@ -10,8 +10,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/patyukin/banking-system/auth/internal/client/db"
-	"github.com/patyukin/banking-system/auth/internal/client/db/prettier"
+	"github.com/patyukin/bs-auth/internal/client/db"
+	"github.com/patyukin/bs-auth/internal/client/db/prettier"
 )
 
 type key string

@@ -2,8 +2,8 @@ package user
 
 import (
 	"context"
-	"github.com/patyukin/banking-system/auth/internal/converter"
-	desc "github.com/patyukin/banking-system/auth/pkg/user_v1"
+	"github.com/patyukin/bs-auth/internal/converter"
+	desc "github.com/patyukin/bs-auth/pkg/user_v1"
 )
 
 func (i *Implementation) Get(ctx context.Context, req *desc.GetRequest) (*desc.GetResponse, error) {

@@ -3,27 +3,25 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/patyukin/bs-auth/internal/config"
 	"io"
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/patyukin/banking-system/auth/internal/closer"
-	"github.com/patyukin/banking-system/auth/internal/interceptor"
-	"github.com/patyukin/banking-system/auth/internal/queue/kafka"
+	"github.com/patyukin/bs-auth/internal/closer"
+	"github.com/patyukin/bs-auth/internal/interceptor"
 	"github.com/rakyll/statik/fs"
 	"github.com/rs/cors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/patyukin/banking-system/auth/internal/config"
-	descAuth "github.com/patyukin/banking-system/auth/pkg/auth_v1"
-	descUser "github.com/patyukin/banking-system/auth/pkg/user_v1"
-	_ "github.com/patyukin/banking-system/auth/statik"
+	descAuth "github.com/patyukin/bs-auth/pkg/auth_v1"
+	descUser "github.com/patyukin/bs-auth/pkg/user_v1"
+	_ "github.com/patyukin/bs-auth/statik"
 )
 
 type App struct {
@@ -33,12 +31,10 @@ type App struct {
 	swaggerServer   *http.Server
 }
 
-const EnvFilePath = "ENV_FILE_PATH"
-
-func NewApp(ctx context.Context) (*App, error) {
+func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	a := &App{}
 
-	err := a.initDeps(ctx)
+	err := a.initDeps(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -89,18 +85,16 @@ func (a *App) Run() error {
 	return nil
 }
 
-func (a *App) initDeps(ctx context.Context) error {
-	inits := []func(context.Context) error{
-		a.initConfig,
+func (a *App) initDeps(ctx context.Context, cfg *config.Config) error {
+	inits := []func(context.Context, *config.Config) error{
 		a.initServiceProvider,
 		a.initGRPCServer,
 		a.initHTTPServer,
 		a.initSwaggerServer,
-		a.initProducer,
 	}
 
 	for _, f := range inits {
-		err := f(ctx)
+		err := f(ctx, cfg)
 		if err != nil {
 			return err
 		}
@@ -109,22 +103,13 @@ func (a *App) initDeps(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) initConfig(_ context.Context) error {
-	configPath := os.Getenv(EnvFilePath)
-	err := config.Load(configPath)
-	if err != nil {
-		return err
-	}
+func (a *App) initServiceProvider(_ context.Context, cfg *config.Config) error {
+	a.serviceProvider = newServiceProvider(cfg)
 
 	return nil
 }
 
-func (a *App) initServiceProvider(_ context.Context) error {
-	a.serviceProvider = newServiceProvider()
-	return nil
-}
-
-func (a *App) initGRPCServer(ctx context.Context) error {
+func (a *App) initGRPCServer(ctx context.Context, _ *config.Config) error {
 	a.grpcServer = grpc.NewServer(
 		grpc.Creds(insecure.NewCredentials()),
 		grpc.UnaryInterceptor(interceptor.ValidateInterceptor),
@@ -138,19 +123,20 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) initHTTPServer(ctx context.Context) error {
+func (a *App) initHTTPServer(ctx context.Context, cfg *config.Config) error {
 	mux := runtime.NewServeMux()
 
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	err := descUser.RegisterUserV1HandlerFromEndpoint(ctx, mux, a.serviceProvider.GRPCConfig().Address(), opts)
+	grpcAddress := cfg.Server.GRPC.Host + ":" + cfg.Server.GRPC.Port
+	err := descUser.RegisterUserV1HandlerFromEndpoint(ctx, mux, grpcAddress, opts)
 	if err != nil {
 		return fmt.Errorf("failed to descUser.RegisterUserV1HandlerFromEndpoint, error: %v", err)
 	}
 
-	err = descAuth.RegisterAuthV1HandlerFromEndpoint(ctx, mux, a.serviceProvider.GRPCConfig().Address(), opts)
+	err = descAuth.RegisterAuthV1HandlerFromEndpoint(ctx, mux, grpcAddress, opts)
 	if err != nil {
 		return fmt.Errorf("failed to descAuth.RegisterAuthV1HandlerFromEndpoint, error: %v", err)
 	}
@@ -162,15 +148,16 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 		AllowCredentials: true,
 	})
 
+	httpAddress := cfg.Server.HTTP.Host + ":" + cfg.Server.HTTP.Port
 	a.httpServer = &http.Server{
-		Addr:    a.serviceProvider.HTTPConfig().Address(),
+		Addr:    httpAddress,
 		Handler: corsMiddleware.Handler(mux),
 	}
 
 	return nil
 }
 
-func (a *App) initSwaggerServer(_ context.Context) error {
+func (a *App) initSwaggerServer(_ context.Context, cfg *config.Config) error {
 	statikFs, err := fs.New()
 	if err != nil {
 		return err
@@ -180,8 +167,9 @@ func (a *App) initSwaggerServer(_ context.Context) error {
 	mux.Handle("/", http.StripPrefix("/", http.FileServer(statikFs)))
 	mux.HandleFunc("/api.swagger.json", serveSwaggerFile("/api.swagger.json"))
 
+	swaggerAddress := cfg.Server.Swagger.Host + ":" + cfg.Server.Swagger.Port
 	a.swaggerServer = &http.Server{
-		Addr:    a.serviceProvider.SwaggerConfig().Address(),
+		Addr:    swaggerAddress,
 		Handler: mux,
 	}
 
@@ -189,9 +177,10 @@ func (a *App) initSwaggerServer(_ context.Context) error {
 }
 
 func (a *App) runGRPCServer() error {
-	log.Printf("GRPC server is running on %s", a.serviceProvider.GRPCConfig().Address())
+	grpcAddress := a.serviceProvider.config.Server.GRPC.Host + ":" + a.serviceProvider.config.Server.GRPC.Port
+	log.Printf("GRPC server is running on %s", grpcAddress)
 
-	list, err := net.Listen("tcp", a.serviceProvider.GRPCConfig().Address())
+	list, err := net.Listen("tcp", grpcAddress)
 	if err != nil {
 		return err
 	}
@@ -205,7 +194,8 @@ func (a *App) runGRPCServer() error {
 }
 
 func (a *App) runHTTPServer() error {
-	log.Printf("HTTP server is running on %s", a.serviceProvider.HTTPConfig().Address())
+	httpAddress := a.serviceProvider.config.Server.HTTP.Host + ":" + a.serviceProvider.config.Server.HTTP.Port
+	log.Printf("HTTP server is running on %s", httpAddress)
 
 	err := a.httpServer.ListenAndServe()
 	if err != nil {
@@ -216,7 +206,8 @@ func (a *App) runHTTPServer() error {
 }
 
 func (a *App) runSwaggerServer() error {
-	log.Printf("Swagger server is running on %s", a.serviceProvider.SwaggerConfig().Address())
+	swaggerAddress := a.serviceProvider.config.Server.Swagger.Host + ":" + a.serviceProvider.config.Server.Swagger.Port
+	log.Printf("Swagger server is running on %s", swaggerAddress)
 
 	err := a.swaggerServer.ListenAndServe()
 	if err != nil {
@@ -264,16 +255,4 @@ func serveSwaggerFile(path string) http.HandlerFunc {
 
 		log.Printf("Served swagger file: %s", path)
 	}
-}
-
-func (a *App) initProducer(_ context.Context) error {
-	var err error
-	if a.serviceProvider.producer == nil {
-		a.serviceProvider.producer, err = kafka.NewSyncProducer([]string{"localhost:9092"}, "my-topic")
-		if err != nil {
-			return fmt.Errorf("failed to create kafka producer: %v", err)
-		}
-	}
-
-	return nil
 }

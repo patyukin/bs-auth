@@ -35,7 +35,7 @@ func NewSyncProducer(brokerList []string, topic string) (*KafkaProducer, error) 
 
 	producer, err := sarama.NewSyncProducer(brokerList, config)
 	if err != nil {
-		return &KafkaProducer{}, errors.Wrap(err, "Starting Sarama producer")
+		return nil, errors.Wrap(err, "Starting Sarama producer")
 	}
 
 	kafkaProducer := &KafkaProducer{

@@ -9,7 +9,7 @@ run:
     - vendor
     - var
     - tmp
-    - .cache
+    - .cacher
     - .idea
     - .vscode
   skip-files:

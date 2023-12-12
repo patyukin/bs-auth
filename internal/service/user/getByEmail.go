@@ -2,7 +2,7 @@ package user
 
 import (
 	"context"
-	"github.com/patyukin/banking-system/auth/internal/model"
+	"github.com/patyukin/bs-auth/internal/model"
 )
 
 func (s *serv) GetByEmail(ctx context.Context, email string) (*model.User, error) {

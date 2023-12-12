@@ -6,10 +6,11 @@ import (
 )
 
 type User struct {
-	ID        int64
-	Info      UserInfo
-	CreatedAt time.Time
-	UpdatedAt sql.NullTime
+	ID           int64
+	Info         UserInfo
+	CreatedAt    time.Time
+	UpdatedAt    sql.NullTime
+	PasswordHash string
 }
 
 type UserInfo struct {

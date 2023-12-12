@@ -1,8 +1,8 @@
 package converter
 
 import (
-	"github.com/patyukin/banking-system/auth/internal/model"
-	desc "github.com/patyukin/banking-system/auth/pkg/user_v1"
+	"github.com/patyukin/bs-auth/internal/model"
+	desc "github.com/patyukin/bs-auth/pkg/user_v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"time"
 )

@@ -3,8 +3,8 @@ package auth
 import (
 	"context"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/patyukin/banking-system/auth/internal/client/db"
-	"github.com/patyukin/banking-system/auth/internal/repository"
+	"github.com/patyukin/bs-auth/internal/client/db"
+	"github.com/patyukin/bs-auth/internal/repository"
 	"time"
 )
 

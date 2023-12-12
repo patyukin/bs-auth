@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 
-	desc "github.com/patyukin/banking-system/auth/pkg/auth_v1"
+	desc "github.com/patyukin/bs-auth/pkg/auth_v1"
 
-	"github.com/patyukin/banking-system/auth/internal/model"
+	"github.com/patyukin/bs-auth/internal/model"
 )
 
 type UserService interface {
@@ -15,5 +15,6 @@ type UserService interface {
 }
 
 type AuthService interface {
-	SignIn(ctx context.Context, params *model.User) (*desc.AuthResponse, error)
+	SignIn(ctx context.Context, params *model.User, fingerprint string) (*desc.SignInResponse, error)
+	CheckCode(ctx context.Context, req *desc.CheckCodeRequest) (*desc.CheckCodeResponse, error)
 }

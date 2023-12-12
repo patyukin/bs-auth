@@ -28,14 +28,14 @@
     "application/json"
   ],
   "paths": {
-    "/api/v1/auth/sign-in": {
+    "/api/v1/auth/check-code": {
       "post": {
-        "operationId": "AuthV1_SignIn",
+        "operationId": "AuthV1_CheckCode",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/auth_v1AuthResponse"
+              "$ref": "#/definitions/auth_v1CheckCodeResponse"
             }
           },
           "default": {
@@ -51,7 +51,39 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/auth_v1AuthRequest"
+              "$ref": "#/definitions/auth_v1CheckCodeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthV1"
+        ]
+      }
+    },
+    "/api/v1/auth/sign-in": {
+      "post": {
+        "operationId": "AuthV1_SignIn",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/auth_v1SignInResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/auth_v1SignInRequest"
             }
           }
         ],
@@ -235,7 +267,29 @@
     }
   },
   "definitions": {
-    "auth_v1AuthRequest": {
+    "auth_v1CheckCodeRequest": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      }
+    },
+    "auth_v1CheckCodeResponse": {
+      "type": "object",
+      "properties": {
+        "accessToken": {
+          "type": "string"
+        },
+        "refreshToken": {
+          "type": "string"
+        }
+      }
+    },
+    "auth_v1SignInRequest": {
       "type": "object",
       "properties": {
         "email": {
@@ -243,16 +297,19 @@
         },
         "password": {
           "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
         }
       }
     },
-    "auth_v1AuthResponse": {
+    "auth_v1SignInResponse": {
       "type": "object",
       "properties": {
-        "accessToken": {
+        "base32": {
           "type": "string"
         },
-        "refreshToken": {
+        "otpAuthUrl": {
           "type": "string"
         }
       }

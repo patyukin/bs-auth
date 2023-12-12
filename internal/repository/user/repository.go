@@ -5,11 +5,11 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 
-	"github.com/patyukin/banking-system/auth/internal/client/db"
-	"github.com/patyukin/banking-system/auth/internal/model"
-	"github.com/patyukin/banking-system/auth/internal/repository"
-	"github.com/patyukin/banking-system/auth/internal/repository/user/converter"
-	modelRepo "github.com/patyukin/banking-system/auth/internal/repository/user/model"
+	"github.com/patyukin/bs-auth/internal/client/db"
+	"github.com/patyukin/bs-auth/internal/model"
+	"github.com/patyukin/bs-auth/internal/repository"
+	"github.com/patyukin/bs-auth/internal/repository/user/converter"
+	modelRepo "github.com/patyukin/bs-auth/internal/repository/user/model"
 )
 
 const (
@@ -28,7 +28,7 @@ type repo struct {
 }
 
 func (r *repo) GetByEmail(ctx context.Context, email string) (*model.User, error) {
-	builder := sq.Select(idColumn, nameColumn, passwordColumn, emailColumn, createdAtColumn, updatedAtColumn).
+	builder := sq.Select(idColumn, nameColumn, emailColumn, passwordColumn, createdAtColumn, updatedAtColumn).
 		PlaceholderFormat(sq.Dollar).
 		From(tableName).
 		Where(sq.Eq{emailColumn: email})
@@ -45,7 +45,7 @@ func (r *repo) GetByEmail(ctx context.Context, email string) (*model.User, error
 
 	var user modelRepo.User
 	err = r.db.DB().QueryRowContext(ctx, q, args...).
-		Scan(&user.ID, &user.Info.Name, &user.Info.Email, &user.CreatedAt, &user.UpdatedAt)
+		Scan(&user.ID, &user.Info.Name, &user.Info.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}

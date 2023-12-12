@@ -8,11 +8,11 @@ import (
 
 	"github.com/brianvoe/gofakeit"
 	"github.com/gojuno/minimock/v3"
-	"github.com/patyukin/banking-system/auth/internal/api/auth"
-	"github.com/patyukin/banking-system/auth/internal/model"
-	"github.com/patyukin/banking-system/auth/internal/service"
-	serviceMocks "github.com/patyukin/banking-system/auth/internal/service/mocks"
-	desc "github.com/patyukin/banking-system/auth/pkg/auth_v1"
+	"github.com/patyukin/bs-auth/internal/api/auth"
+	"github.com/patyukin/bs-auth/internal/model"
+	"github.com/patyukin/bs-auth/internal/service"
+	serviceMocks "github.com/patyukin/bs-auth/internal/service/mocks"
+	desc "github.com/patyukin/bs-auth/pkg/auth_v1"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 )

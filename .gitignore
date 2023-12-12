@@ -1,6 +1,6 @@
 .idea
 .vscode
-.env.local
+/.env*.local
 /vendor.protogen/
 /bin/
 /coverage.out

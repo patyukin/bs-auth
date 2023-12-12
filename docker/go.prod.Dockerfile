@@ -1,6 +1,6 @@
 FROM golang:1.21.3-alpine AS builder
 
-COPY . /app
+COPY .. /app
 WORKDIR /app
 
 RUN go mod download
@@ -11,6 +11,7 @@ FROM alpine:3.18
 
 WORKDIR /root/
 COPY --from=builder /app/bin/auth_server .
-ADD .env .
+ADD config/.env .
+ENV APP_ENV=prod
 
-CMD ["./auth_server", "-config-path", ".env"]
+CMD ["./auth_server"]

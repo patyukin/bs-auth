@@ -1,0 +1,28 @@
+server:
+  grpc:
+    host: 0.0.0.0
+    port: 11110
+  http:
+    host: 0.0.0.0
+    port: 11111
+  swagger:
+    host: 0.0.0.0
+    port: 11112
+
+pg:
+  dsn: host=pg port=5432 dbname=auth user=auth-user password=auth-password sslmode=disable
+  dsn_test: host=pg-test port=5432 dbname=auth user=auth-user password=auth-password sslmode=disable
+  port: 11113
+  port_test: 11114
+  token_sign_key: secret key
+
+migrations:
+  dir: migrations
+
+kafka:
+  host: kafka
+  port: 9002
+
+redis:
+  port: 11115
+

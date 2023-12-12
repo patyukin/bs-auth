@@ -2,31 +2,29 @@ package app
 
 import (
 	"context"
+	"github.com/patyukin/bs-auth/internal/cacher"
+	"github.com/patyukin/bs-auth/internal/cacher/redis"
 	"log"
 
-	"github.com/patyukin/banking-system/auth/internal/api/auth"
-	"github.com/patyukin/banking-system/auth/internal/api/user"
-	"github.com/patyukin/banking-system/auth/internal/queue/kafka"
-	authRepository "github.com/patyukin/banking-system/auth/internal/repository/auth"
+	"github.com/patyukin/bs-auth/internal/api/auth"
+	"github.com/patyukin/bs-auth/internal/api/user"
+	"github.com/patyukin/bs-auth/internal/queue/kafka"
+	authRepository "github.com/patyukin/bs-auth/internal/repository/auth"
 
-	"github.com/patyukin/banking-system/auth/internal/client/db"
-	"github.com/patyukin/banking-system/auth/internal/client/db/pg"
-	"github.com/patyukin/banking-system/auth/internal/client/db/transaction"
-	"github.com/patyukin/banking-system/auth/internal/closer"
-	"github.com/patyukin/banking-system/auth/internal/config"
-	"github.com/patyukin/banking-system/auth/internal/config/env"
-	"github.com/patyukin/banking-system/auth/internal/repository"
-	userRepository "github.com/patyukin/banking-system/auth/internal/repository/user"
-	"github.com/patyukin/banking-system/auth/internal/service"
-	authService "github.com/patyukin/banking-system/auth/internal/service/auth"
-	userService "github.com/patyukin/banking-system/auth/internal/service/user"
+	"github.com/patyukin/bs-auth/internal/client/db"
+	"github.com/patyukin/bs-auth/internal/client/db/pg"
+	"github.com/patyukin/bs-auth/internal/client/db/transaction"
+	"github.com/patyukin/bs-auth/internal/closer"
+	"github.com/patyukin/bs-auth/internal/config"
+	"github.com/patyukin/bs-auth/internal/repository"
+	userRepository "github.com/patyukin/bs-auth/internal/repository/user"
+	"github.com/patyukin/bs-auth/internal/service"
+	authService "github.com/patyukin/bs-auth/internal/service/auth"
+	userService "github.com/patyukin/bs-auth/internal/service/user"
 )
 
 type serviceProvider struct {
-	pgConfig      config.PGConfig
-	grpcConfig    config.GRPCConfig
-	httpConfig    config.HTTPConfig
-	swaggerConfig config.SwaggerConfig
+	config *config.Config
 
 	dbClient  db.Client
 	txManager db.TxManager
@@ -40,67 +38,18 @@ type serviceProvider struct {
 	userImpl *user.Implementation
 	authImpl *auth.Implementation
 	producer *kafka.KafkaProducer
+	cacher   *redis.RedisClient
 }
 
-func newServiceProvider() *serviceProvider {
-	return &serviceProvider{}
-}
-
-func (s *serviceProvider) PGConfig() config.PGConfig {
-	if s.pgConfig == nil {
-		cfg, err := env.NewPGConfig()
-		if err != nil {
-			log.Fatalf("failed to get pg config: %s", err.Error())
-		}
-
-		s.pgConfig = cfg
+func newServiceProvider(cfg *config.Config) *serviceProvider {
+	return &serviceProvider{
+		config: cfg,
 	}
-
-	return s.pgConfig
-}
-
-func (s *serviceProvider) GRPCConfig() config.GRPCConfig {
-	if s.grpcConfig == nil {
-		cfg, err := env.NewGRPCConfig()
-		if err != nil {
-			log.Fatalf("failed to get grpc config: %s", err.Error())
-		}
-
-		s.grpcConfig = cfg
-	}
-
-	return s.grpcConfig
-}
-
-func (s *serviceProvider) HTTPConfig() config.HTTPConfig {
-	if s.httpConfig == nil {
-		cfg, err := env.NewHTTPConfig()
-		if err != nil {
-			log.Fatalf("failed to get http config: %s", err.Error())
-		}
-
-		s.httpConfig = cfg
-	}
-
-	return s.httpConfig
-}
-
-func (s *serviceProvider) SwaggerConfig() config.SwaggerConfig {
-	if s.swaggerConfig == nil {
-		cfg, err := env.NewSwaggerConfig()
-		if err != nil {
-			log.Fatalf("failed to get swagger config: %s", err.Error())
-		}
-
-		s.swaggerConfig = cfg
-	}
-
-	return s.swaggerConfig
 }
 
 func (s *serviceProvider) DBClient(ctx context.Context) db.Client {
 	if s.dbClient == nil {
-		cl, err := pg.New(ctx, s.PGConfig().DSN())
+		cl, err := pg.New(ctx, s.config.PG.DSN)
 		if err != nil {
 			log.Fatalf("failed to create db client: %v", err)
 		}
@@ -167,6 +116,7 @@ func (s *serviceProvider) AuthService(ctx context.Context) service.AuthService {
 			s.UserRepository(ctx),
 			s.TxManager(ctx),
 			s.Producer(ctx),
+			s.Cacher(ctx),
 		)
 	}
 
@@ -174,12 +124,34 @@ func (s *serviceProvider) AuthService(ctx context.Context) service.AuthService {
 }
 
 func (s *serviceProvider) Producer(_ context.Context) *kafka.KafkaProducer {
+	var err error
+	host := s.config.Kafka.DSN
+	if s.producer == nil {
+		s.producer, err = kafka.NewSyncProducer([]string{host}, "my-topic")
+		if err != nil {
+			log.Fatalf("failed to create kafka producer: %v", err)
+		}
+	}
+
 	return s.producer
+}
+
+func (s *serviceProvider) Cacher(_ context.Context) cacher.Cacher {
+	address := s.config.Redis.DSN
+	if s.cacher == nil {
+		client := redis.NewRedis(address)
+
+		closer.Add(client.Close)
+
+		s.cacher = client
+	}
+
+	return s.cacher
 }
 
 func (s *serviceProvider) AuthImpl(ctx context.Context) *auth.Implementation {
 	if s.authImpl == nil {
-		s.authImpl = auth.NewImplementation(s.AuthService(ctx), s.UserService(ctx))
+		s.authImpl = auth.NewImplementation(s.AuthService(ctx), s.UserService(ctx), s.config)
 	}
 
 	return s.authImpl

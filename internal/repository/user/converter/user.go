@@ -2,8 +2,8 @@ package converter
 
 import (
 	"database/sql"
-	"github.com/patyukin/banking-system/auth/internal/model"
-	modelRepo "github.com/patyukin/banking-system/auth/internal/repository/user/model"
+	"github.com/patyukin/bs-auth/internal/model"
+	modelRepo "github.com/patyukin/bs-auth/internal/repository/user/model"
 	"time"
 )
 
@@ -20,6 +20,7 @@ func ToUserFromRepo(user *modelRepo.User) *model.User {
 	return &model.User{
 		ID:        user.ID,
 		Info:      ToUserInfoFromRepo(user.Info),
+		Password:  user.PasswordHash,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: t,
 	}

@@ -1,18 +1,21 @@
 .PHONY:
 
-include .env
+include .env.local
 
 LOCAL_BIN:=$(CURDIR)/bin
 
 LOCAL_MIGRATION_DIR=$(MIGRATION_DIR)
 LOCAL_MIGRATION_DSN="host=localhost port=$(PG_PORT) dbname=$(PG_DATABASE_NAME) user=$(PG_USER) password=$(PG_PASSWORD) sslmode=disable"
 
+.PHONY: install-golangci-lint
 install-golangci-lint:
 	GOBIN=$(LOCAL_BIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3
 
+.PHONY: lint
 lint:
 	GOBIN=$(LOCAL_BIN) ./bin/golangci-lint run ./... --config .golangci.pipeline.yaml
 
+.PHONY: install-deps
 install-deps:
 	GOBIN=$(LOCAL_BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
 	GOBIN=$(LOCAL_BIN) go install -mod=mod google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
@@ -22,18 +25,21 @@ install-deps:
 	GOBIN=$(LOCAL_BIN) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.15.2
 	GOBIN=$(LOCAL_BIN) go install github.com/rakyll/statik@v0.1.7
 
+.PHONY: get-deps
 get-deps:
 	go get -u google.golang.org/protobuf/cmd/protoc-gen-go
 	go get -u github.com/googleapis/api-common-protos
 
+.PHONY: generate
 generate:
 	mkdir -p pkg/swagger
 	make generate-auth-api
 
+.PHONY: generate-statik
 generate-statik:
 	$(LOCAL_BIN)/statik -src=pkg/swagger/ -include='*.css,*.html,*.js,*.json,*.png'
 
-
+.PHONY: generate-auth-api
 generate-auth-api:
 	mkdir -p pkg
 	protoc --proto_path api	--proto_path vendor.protogen \
@@ -49,21 +55,27 @@ generate-auth-api:
 		--plugin=protoc-gen-openapiv2=bin/protoc-gen-openapiv2 \
 		api/*/*.proto
 
+.PHONY: local-migration-status
 local-migration-status:
 	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} status -v
 
+.PHONY: local-migration-up
 local-migration-up:
 	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} up -v
 
+.PHONY: local-migration-down
 local-migration-down:
 	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} down -v
 
+.PHONY: dc-up-local
 dc-up-local:
 	docker-compose -f docker-compose-local.yaml --env-file .env.local up -d
 
+.PHONY: dc-up
 dc-up:
 	docker-compose up -d
 
+.PHONY: vendor-proto
 vendor-proto:
 		@if [ ! -d vendor.protogen/validate ]; then \
 			mkdir -p vendor.protogen/validate &&\

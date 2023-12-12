@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/patyukin/banking-system/auth/internal/model"
+	"github.com/patyukin/bs-auth/internal/model"
 )
 
 type UserRepository interface {

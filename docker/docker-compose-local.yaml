@@ -5,16 +5,8 @@ volumes:
   pg_test_volume:
 
 services:
-  go:
-    build:
-      context: .
-      dockerfile: go.Dockerfile
-    networks:
-      - banking-system
-
-  pg:
+  pg-auth:
     image: postgres:15-alpine3.18
-    restart: always
     environment:
       - "POSTGRES_DB=${PG_DB_NAME}"
       - "POSTGRES_USER=${PG_USER}"
@@ -26,9 +18,8 @@ services:
     networks:
       - banking-system
 
-  pg-test:
+  pg-test-auth:
     image: postgres:15-alpine3.18
-    restart: always
     environment:
       - "POSTGRES_DB=${PG_DB_NAME}"
       - "POSTGRES_USER=${PG_USER}"
@@ -40,11 +31,23 @@ services:
     networks:
       - banking-system
 
-  migrator:
+  redis-auth:
+    image: redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    networks:
+      - banking-system
+
+  migrator-auth:
     build:
       context: .
       dockerfile: migration.Dockerfile
     restart: on-failure
+    depends_on:
+      - pg-auth
+      - pg-test-auth
+    networks:
+      - banking-system
 
 networks:
   banking-system:

@@ -6,8 +6,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
 
-	"github.com/patyukin/banking-system/auth/internal/client/db"
-	"github.com/patyukin/banking-system/auth/internal/client/db/pg"
+	"github.com/patyukin/bs-auth/internal/client/db"
+	"github.com/patyukin/bs-auth/internal/client/db/pg"
 )
 
 type manager struct {

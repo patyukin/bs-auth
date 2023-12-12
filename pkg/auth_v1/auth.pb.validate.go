@@ -35,22 +35,22 @@ var (
 	_ = sort.Sort
 )
 
-// Validate checks the field values on AuthRequest with the rules defined in
+// Validate checks the field values on SignInRequest with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
-func (m *AuthRequest) Validate() error {
+func (m *SignInRequest) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AuthRequest with the rules defined in
-// the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in AuthRequestMultiError, or
+// ValidateAll checks the field values on SignInRequest with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in SignInRequestMultiError, or
 // nil if none found.
-func (m *AuthRequest) ValidateAll() error {
+func (m *SignInRequest) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AuthRequest) validate(all bool) error {
+func (m *SignInRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -61,19 +61,22 @@ func (m *AuthRequest) validate(all bool) error {
 
 	// no validation rules for Password
 
+	// no validation rules for Fingerprint
+
 	if len(errors) > 0 {
-		return AuthRequestMultiError(errors)
+		return SignInRequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// AuthRequestMultiError is an error wrapping multiple validation errors
-// returned by AuthRequest.ValidateAll() if the designated constraints aren't met.
-type AuthRequestMultiError []error
+// SignInRequestMultiError is an error wrapping multiple validation errors
+// returned by SignInRequest.ValidateAll() if the designated constraints
+// aren't met.
+type SignInRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AuthRequestMultiError) Error() string {
+func (m SignInRequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -82,11 +85,11 @@ func (m AuthRequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AuthRequestMultiError) AllErrors() []error { return m }
+func (m SignInRequestMultiError) AllErrors() []error { return m }
 
-// AuthRequestValidationError is the validation error returned by
-// AuthRequest.Validate if the designated constraints aren't met.
-type AuthRequestValidationError struct {
+// SignInRequestValidationError is the validation error returned by
+// SignInRequest.Validate if the designated constraints aren't met.
+type SignInRequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -94,22 +97,22 @@ type AuthRequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e AuthRequestValidationError) Field() string { return e.field }
+func (e SignInRequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AuthRequestValidationError) Reason() string { return e.reason }
+func (e SignInRequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AuthRequestValidationError) Cause() error { return e.cause }
+func (e SignInRequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AuthRequestValidationError) Key() bool { return e.key }
+func (e SignInRequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AuthRequestValidationError) ErrorName() string { return "AuthRequestValidationError" }
+func (e SignInRequestValidationError) ErrorName() string { return "SignInRequestValidationError" }
 
 // Error satisfies the builtin error interface
-func (e AuthRequestValidationError) Error() string {
+func (e SignInRequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -121,14 +124,14 @@ func (e AuthRequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAuthRequest.%s: %s%s",
+		"invalid %sSignInRequest.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AuthRequestValidationError{}
+var _ error = SignInRequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -136,24 +139,232 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AuthRequestValidationError{}
+} = SignInRequestValidationError{}
 
-// Validate checks the field values on AuthResponse with the rules defined in
+// Validate checks the field values on SignInResponse with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
-func (m *AuthResponse) Validate() error {
+func (m *SignInResponse) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AuthResponse with the rules defined
+// ValidateAll checks the field values on SignInResponse with the rules defined
 // in the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in AuthResponseMultiError, or
-// nil if none found.
-func (m *AuthResponse) ValidateAll() error {
+// result is a list of violation errors wrapped in SignInResponseMultiError,
+// or nil if none found.
+func (m *SignInResponse) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AuthResponse) validate(all bool) error {
+func (m *SignInResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Base32
+
+	// no validation rules for OtpAuthUrl
+
+	if len(errors) > 0 {
+		return SignInResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// SignInResponseMultiError is an error wrapping multiple validation errors
+// returned by SignInResponse.ValidateAll() if the designated constraints
+// aren't met.
+type SignInResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m SignInResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m SignInResponseMultiError) AllErrors() []error { return m }
+
+// SignInResponseValidationError is the validation error returned by
+// SignInResponse.Validate if the designated constraints aren't met.
+type SignInResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e SignInResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e SignInResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e SignInResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e SignInResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e SignInResponseValidationError) ErrorName() string { return "SignInResponseValidationError" }
+
+// Error satisfies the builtin error interface
+func (e SignInResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sSignInResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = SignInResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = SignInResponseValidationError{}
+
+// Validate checks the field values on CheckCodeRequest with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *CheckCodeRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on CheckCodeRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// CheckCodeRequestMultiError, or nil if none found.
+func (m *CheckCodeRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *CheckCodeRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Code
+
+	// no validation rules for Fingerprint
+
+	if len(errors) > 0 {
+		return CheckCodeRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+// CheckCodeRequestMultiError is an error wrapping multiple validation errors
+// returned by CheckCodeRequest.ValidateAll() if the designated constraints
+// aren't met.
+type CheckCodeRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m CheckCodeRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m CheckCodeRequestMultiError) AllErrors() []error { return m }
+
+// CheckCodeRequestValidationError is the validation error returned by
+// CheckCodeRequest.Validate if the designated constraints aren't met.
+type CheckCodeRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CheckCodeRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CheckCodeRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CheckCodeRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CheckCodeRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CheckCodeRequestValidationError) ErrorName() string { return "CheckCodeRequestValidationError" }
+
+// Error satisfies the builtin error interface
+func (e CheckCodeRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCheckCodeRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CheckCodeRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CheckCodeRequestValidationError{}
+
+// Validate checks the field values on CheckCodeResponse with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *CheckCodeResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on CheckCodeResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// CheckCodeResponseMultiError, or nil if none found.
+func (m *CheckCodeResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *CheckCodeResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -165,18 +376,19 @@ func (m *AuthResponse) validate(all bool) error {
 	// no validation rules for RefreshToken
 
 	if len(errors) > 0 {
-		return AuthResponseMultiError(errors)
+		return CheckCodeResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// AuthResponseMultiError is an error wrapping multiple validation errors
-// returned by AuthResponse.ValidateAll() if the designated constraints aren't met.
-type AuthResponseMultiError []error
+// CheckCodeResponseMultiError is an error wrapping multiple validation errors
+// returned by CheckCodeResponse.ValidateAll() if the designated constraints
+// aren't met.
+type CheckCodeResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AuthResponseMultiError) Error() string {
+func (m CheckCodeResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -185,11 +397,11 @@ func (m AuthResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AuthResponseMultiError) AllErrors() []error { return m }
+func (m CheckCodeResponseMultiError) AllErrors() []error { return m }
 
-// AuthResponseValidationError is the validation error returned by
-// AuthResponse.Validate if the designated constraints aren't met.
-type AuthResponseValidationError struct {
+// CheckCodeResponseValidationError is the validation error returned by
+// CheckCodeResponse.Validate if the designated constraints aren't met.
+type CheckCodeResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -197,22 +409,24 @@ type AuthResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e AuthResponseValidationError) Field() string { return e.field }
+func (e CheckCodeResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AuthResponseValidationError) Reason() string { return e.reason }
+func (e CheckCodeResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AuthResponseValidationError) Cause() error { return e.cause }
+func (e CheckCodeResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AuthResponseValidationError) Key() bool { return e.key }
+func (e CheckCodeResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AuthResponseValidationError) ErrorName() string { return "AuthResponseValidationError" }
+func (e CheckCodeResponseValidationError) ErrorName() string {
+	return "CheckCodeResponseValidationError"
+}
 
 // Error satisfies the builtin error interface
-func (e AuthResponseValidationError) Error() string {
+func (e CheckCodeResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -224,14 +438,14 @@ func (e AuthResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAuthResponse.%s: %s%s",
+		"invalid %sCheckCodeResponse.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AuthResponseValidationError{}
+var _ error = CheckCodeResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -239,4 +453,4 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AuthResponseValidationError{}
+} = CheckCodeResponseValidationError{}

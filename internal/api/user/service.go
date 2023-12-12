@@ -1,8 +1,8 @@
 package user
 
 import (
-	"github.com/patyukin/banking-system/auth/internal/service"
-	desc "github.com/patyukin/banking-system/auth/pkg/user_v1"
+	"github.com/patyukin/bs-auth/internal/service"
+	desc "github.com/patyukin/bs-auth/pkg/user_v1"
 )
 
 type Implementation struct {

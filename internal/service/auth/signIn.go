@@ -2,49 +2,52 @@ package auth
 
 import (
 	"context"
-	"os"
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/patyukin/bs-auth/internal/model"
+	desc "github.com/patyukin/bs-auth/pkg/auth_v1"
 	"time"
-
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/patyukin/banking-system/auth/internal/model"
-	desc "github.com/patyukin/banking-system/auth/pkg/auth_v1"
 )
 
-const (
-	TokenSignKey = "TOKEN_SIGN_KEY"
-)
-
-type Claims struct {
-	Id int64 `json:"id"`
-	jwt.RegisteredClaims
+type HashRedis struct {
+	RefreshToken string `json:"refresh_token"`
+	Code         string `json:"code"`
 }
 
-func (s *serv) SignIn(ctx context.Context, user *model.User) (*desc.AuthResponse, error) {
-	// generate claims
-	s.producer.SendMessage("ss", "sdsdsd")
-	mySigningKey := []byte(os.Getenv(TokenSignKey))
-	claims := Claims{
-		user.ID,
-		jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
-		},
-	}
+func (s *serv) SignIn(ctx context.Context, user *model.User, fingerprint string) (*desc.SignInResponse, error) {
+	// Генерация случайного UUID
+	var key string
+	fpCodeKey := fingerprint
 
-	// generate access token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	accessToken, err := token.SignedString(mySigningKey)
+	// fingerprint
+	fpValue, err := s.cacher.Get(ctx, fpCodeKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("can't get fingerprint from cache: %w", err)
 	}
 
-	// generate refresh token
-	refreshToken, errTx := s.authRepository.Create(ctx, user.ID)
-	if errTx != nil {
-		return nil, errTx
+	err = s.cacher.Set(ctx, fpCodeKey, fpValue, 30*time.Minute)
+	if err != nil {
+		return nil, fmt.Errorf("can't set fingerprint in cache: %w", err)
 	}
 
-	return &desc.AuthResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+	// checking code
+	uuid := uuid.New()
+	// find unique key for caching fingerprint
+	for {
+		key, err = s.cacher.Get(ctx, uuid.String())
+		if err != nil {
+			return nil, err
+		}
+
+		if key != "" {
+			continue
+		}
+
+		break
+	}
+
+	return &desc.SignInResponse{
+		Base32:     "",
+		OtpAuthUrl: "",
 	}, nil
 }
