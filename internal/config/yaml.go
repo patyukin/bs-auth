@@ -7,7 +7,7 @@ import (
 )
 
 func LoadYaml() (*Config, error) {
-	appEnv := os.Getenv(AppEnv)
+	appEnv := os.Getenv(EnvFilePath)
 
 	var configFilePath string
 	// проверка возможных вариантов для appEnv

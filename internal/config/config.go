@@ -1,7 +1,7 @@
 package config
 
 const (
-	AppEnv = "APP_ENV"
+	EnvFilePath = "ENV_FILE_PATH"
 )
 
 type Config struct {

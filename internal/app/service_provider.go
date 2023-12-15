@@ -125,9 +125,8 @@ func (s *serviceProvider) AuthService(ctx context.Context) service.AuthService {
 
 func (s *serviceProvider) Producer(_ context.Context) *kafka.KafkaProducer {
 	var err error
-	host := s.config.Kafka.DSN
 	if s.producer == nil {
-		s.producer, err = kafka.NewSyncProducer([]string{host}, "my-topic")
+		s.producer, err = kafka.NewSyncProducer([]string{s.config.Kafka.DSN}, "my-topic")
 		if err != nil {
 			log.Fatalf("failed to create kafka producer: %v", err)
 		}

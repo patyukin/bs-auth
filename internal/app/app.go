@@ -54,7 +54,7 @@ func (a *App) Run() error {
 	go func() {
 		defer wg.Done()
 
-		err := a.runGRPCServer()
+		err := a.RunGRPCServer()
 		if err != nil {
 			log.Fatalf("failed to run GRPC server: %v", err)
 		}
@@ -176,7 +176,7 @@ func (a *App) initSwaggerServer(_ context.Context, cfg *config.Config) error {
 	return nil
 }
 
-func (a *App) runGRPCServer() error {
+func (a *App) RunGRPCServer() error {
 	grpcAddress := a.serviceProvider.config.Server.GRPC.Host + ":" + a.serviceProvider.config.Server.GRPC.Port
 	log.Printf("GRPC server is running on %s", grpcAddress)
 

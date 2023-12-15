@@ -15,6 +15,7 @@ require (
 	github.com/jackc/pgx/v5 v5.4.3
 	github.com/joho/godotenv v1.5.1
 	github.com/pkg/errors v0.9.1
+	github.com/pquerna/otp v1.4.0
 	github.com/rakyll/statik v0.1.7
 	github.com/redis/go-redis/v9 v9.3.0
 	github.com/rs/cors v1.10.1
@@ -27,6 +28,7 @@ require (
 )
 
 require (
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
@@ -35,7 +37,6 @@ require (
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/googleapis/api-common-protos v0.1.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect

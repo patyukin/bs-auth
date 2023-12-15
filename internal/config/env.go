@@ -1,36 +1,20 @@
 package config
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
 	"os"
 )
 
 func LoadEnvConfig() (*Config, error) {
-	appEnv := os.Getenv(AppEnv)
-
-	var configFilePath string
-	// проверка возможных вариантов для appEnv
-	switch appEnv {
-	case "local-dev":
-		configFilePath = ".env.local-dev"
-	case "local":
-		configFilePath = ".env.local"
-	case "test":
-		configFilePath = ".env.test"
-	case "test-dev":
-		configFilePath = ".env.test-dev"
-	case "prod":
-		configFilePath = ".env.prod"
-	default:
-		panic("config not found")
-	}
+	configFilePath := os.Getenv(EnvFilePath)
 
 	cfg := Config{}
 
 	// Open config file
 	err := godotenv.Load(configFilePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load %s file: %w", configFilePath, err)
 	}
 
 	cfg.Server.HTTP.Host = os.Getenv("HTTP_HOST")

@@ -16,5 +16,6 @@ type UserService interface {
 
 type AuthService interface {
 	SignIn(ctx context.Context, params *model.User, fingerprint string) (*desc.SignInResponse, error)
-	CheckCode(ctx context.Context, req *desc.CheckCodeRequest) (*desc.CheckCodeResponse, error)
+	CheckCode(ctx context.Context, req *desc.CheckCodeRequest) (int64, error)
+	SaveSession(ctx context.Context, userId int64, AuthTokenSignKey string) (*model.Tokens, error)
 }
