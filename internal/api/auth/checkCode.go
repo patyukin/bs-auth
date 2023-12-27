@@ -6,8 +6,10 @@ import (
 	desc "github.com/patyukin/bs-auth/pkg/auth_v1"
 )
 
+// request => dto
 func (i *Implementation) CheckCode(ctx context.Context, req *desc.CheckCodeRequest) (*desc.CheckCodeResponse, error) {
 	// check code
+	// dto
 	userId, err := i.authService.CheckCode(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check code: %w", err)

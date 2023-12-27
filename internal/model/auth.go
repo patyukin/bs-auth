@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	desc "github.com/patyukin/bs-auth/pkg/auth_v1"
+	"time"
+)
 
 type RefreshToken struct {
 	ID        int64
@@ -18,3 +21,7 @@ type Tokens struct {
 	AccessToken  string
 	RefreshToken string
 }
+
+type SignInResponse = desc.SignInResponse
+
+type CheckCodeRequest = desc.CheckCodeRequest

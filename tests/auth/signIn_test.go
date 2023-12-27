@@ -29,7 +29,6 @@ type SignInGRPCTestSuite struct {
 }
 
 func (s *SignInGRPCTestSuite) SetupTest() {
-	//err := os.Setenv(config.EnvFilePath, "../../.env.local")
 	ctx := context.Background()
 
 	cfg, err := config.LoadEnvConfig()

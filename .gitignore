@@ -3,6 +3,7 @@
 /.env*.local
 /vendor.protogen/
 /bin/
+/air_tmpl/
 /coverage.out
 *.drawio.bkp
 *.drawio.dtmp

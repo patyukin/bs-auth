@@ -2,6 +2,9 @@ package app
 
 import (
 	"context"
+	"database/sql"
+	"github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/patyukin/bs-auth/internal/cacher"
 	"github.com/patyukin/bs-auth/internal/cacher/redis"
 	"log"
@@ -21,10 +24,12 @@ import (
 	"github.com/patyukin/bs-auth/internal/service"
 	authService "github.com/patyukin/bs-auth/internal/service/auth"
 	userService "github.com/patyukin/bs-auth/internal/service/user"
+	"github.com/pressly/goose/v3"
 )
 
 type serviceProvider struct {
 	config *config.Config
+	// logger
 
 	dbClient  db.Client
 	txManager db.TxManager
@@ -49,7 +54,7 @@ func newServiceProvider(cfg *config.Config) *serviceProvider {
 
 func (s *serviceProvider) DBClient(ctx context.Context) db.Client {
 	if s.dbClient == nil {
-		cl, err := pg.New(ctx, s.config.PG.DSN)
+		cl, pool, err := pg.New(ctx, s.config.PG.DSN)
 		if err != nil {
 			log.Fatalf("failed to create db client: %v", err)
 		}
@@ -58,7 +63,30 @@ func (s *serviceProvider) DBClient(ctx context.Context) db.Client {
 		if err != nil {
 			log.Fatalf("ping error: %s", err.Error())
 		}
+
 		closer.Add(cl.Close)
+
+		// run migrations
+		if err = goose.SetDialect("postgres"); err != nil {
+			log.Fatalf("failed to set dialect: %v", err)
+		}
+
+		dbGoose := stdlib.OpenDBFromPool(pool)
+		defer func(dbGoose *sql.DB) {
+			err = dbGoose.Close()
+			if err != nil {
+				log.Printf("failed to close db: %v", err)
+			}
+		}(dbGoose)
+
+		// Запускаем миграции с использованием goose
+		if err = goose.SetDialect("postgres"); err != nil {
+			log.Fatal(err)
+		}
+
+		if err = goose.Up(dbGoose, "./migrations"); err != nil {
+			log.Fatal(err)
+		}
 
 		s.dbClient = cl
 	}

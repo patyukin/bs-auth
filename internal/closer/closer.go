@@ -31,7 +31,7 @@ type Closer struct {
 	mu    sync.Mutex
 	once  sync.Once
 	done  chan struct{}
-	funcs []func() error
+	funcs []func() error //
 }
 
 // New returns a new Closer instance.

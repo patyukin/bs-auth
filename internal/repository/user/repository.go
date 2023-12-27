@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 
@@ -35,7 +36,8 @@ func (r *repo) GetByEmail(ctx context.Context, email string) (*model.User, error
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return nil, err
+		// log.Errorf("failed to build query: %s", err.Error())
+		return nil, fmt.Errorf("failed to build query: %w", err)
 	}
 
 	q := db.Query{
@@ -47,7 +49,7 @@ func (r *repo) GetByEmail(ctx context.Context, email string) (*model.User, error
 	err = r.db.DB().QueryRowContext(ctx, q, args...).
 		Scan(&user.ID, &user.Info.Name, &user.Info.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsed error GetByEmail: %w", err)
 	}
 
 	return converter.ToUserFromRepo(&user), nil

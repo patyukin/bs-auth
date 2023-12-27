@@ -15,8 +15,7 @@ import (
 )
 
 func (s *SignInGRPCTestSuite) TestAuthCheckCode() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1000)
-	defer cancel()
+	ctx := context.Background()
 
 	fingerprint := gofakeit.UUID()
 	name := gofakeit.Name()
@@ -33,6 +32,7 @@ func (s *SignInGRPCTestSuite) TestAuthCheckCode() {
 
 	query, args, err := builder.ToSql()
 	s.Require().NoError(err)
+	s.T().Helper()
 
 	q := db.Query{Name: "user_repository.Create", QueryRaw: query}
 	var userID int64
@@ -53,6 +53,7 @@ func (s *SignInGRPCTestSuite) TestAuthCheckCode() {
 	}
 
 	// key for fingerprint
+	// key = fingerprint:sdlkfjklsdf
 	fpKey := fmt.Sprintf("fingerprint:%s", fingerprint)
 	fpValue, err := json.Marshal(otpHashRedis)
 	s.Require().NoError(err)
@@ -70,8 +71,6 @@ func (s *SignInGRPCTestSuite) TestAuthCheckCode() {
 
 	s.Require().NoError(err)
 	s.Require().NotNil(res)
-	s.Require().NotNil(res.AccessToken)
-	s.Require().NotNil(res.RefreshToken)
-	// TUIZJTWMTMMYHWDAS424UXT2
-	// otpauth://totp/example.com:admin@admin.com?algorithm=SHA1&digits=6&issuer=example.com&period=30&secret=TUIZJTWMTMMYHWDAS424UXT2
+	s.Assert().NotNil(res.AccessToken)
+	s.Assert().NotNil(res.RefreshToken)
 }

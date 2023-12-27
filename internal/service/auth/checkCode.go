@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	desc "github.com/patyukin/bs-auth/pkg/auth_v1"
+	"github.com/patyukin/bs-auth/internal/model"
 	"github.com/pquerna/otp/totp"
 )
 
-func (s *serv) CheckCode(ctx context.Context, req *desc.CheckCodeRequest) (int64, error) {
+func (s *serv) CheckCode(ctx context.Context, req *model.CheckCodeRequest) (int64, error) {
 	key := req.GetFingerprint()
 	fpKey := fmt.Sprintf("fingerprint:%s", key)
 	value, err := s.cacher.Get(ctx, fpKey)

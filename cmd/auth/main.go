@@ -18,6 +18,8 @@ func main() {
 		log.Fatalf("failed to init config: %s", err.Error())
 	}
 
+	// logger init
+
 	a, err := app.NewApp(ctx, cfg)
 	if err != nil {
 		log.Fatalf("failed to init app: %s", err.Error())

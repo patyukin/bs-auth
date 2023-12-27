@@ -2,11 +2,12 @@ package auth
 
 import (
 	"context"
+	"github.com/patyukin/bs-auth/internal/model"
 	desc "github.com/patyukin/bs-auth/pkg/auth_v1"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (i *Implementation) SignIn(ctx context.Context, req *desc.SignInRequest) (*desc.SignInResponse, error) {
+func (i *Implementation) SignIn(ctx context.Context, req *desc.SignInRequest) (*model.SignInResponse, error) {
 	user, err := i.userService.GetByEmail(ctx, req.GetEmail())
 	if err != nil {
 		return nil, err

@@ -55,21 +55,13 @@ generate-auth-api:
 		--plugin=protoc-gen-openapiv2=bin/protoc-gen-openapiv2 \
 		api/*/*.proto
 
-.PHONY: local-migration-status
-local-migration-status:
-	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} status -v
-
-.PHONY: local-migration-up
-local-migration-up:
-	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} up -v
-
-.PHONY: local-migration-down
-local-migration-down:
-	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} down -v
-
 .PHONY: dc-up-local
 dc-up-local:
-	docker-compose --env-file .env.local -f docker-compose-local.yaml up -d --build
+	docker-compose --env-file ./bin/.env -f docker-compose-local.yaml up -d
+
+.PHONY: dc-up-build-local
+dc-up-build-local:
+	docker-compose --env-file ./bin/.env -f docker-compose-local.yaml up -d --build
 
 .PHONY: dc-down-local
 dc-down-local:

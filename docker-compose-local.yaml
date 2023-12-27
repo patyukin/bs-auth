@@ -5,6 +5,43 @@ volumes:
   pg_test_volume:
 
 services:
+  server-auth:
+    container_name: server_auth
+    build:
+      dockerfile: HotReload.Dockerfile
+    ports:
+      - "11000:11000"
+    restart: always
+    volumes:
+      - ./:/app
+    networks:
+      - banking-system
+
+  server-air-auth:
+    container_name: server_air_auth
+    build:
+      dockerfile: air.Dockerfile
+    ports:
+      - "11010:11010"
+    restart: always
+    volumes:
+      - ./:/app
+    networks:
+      - banking-system
+
+  server-auth-debug:
+    container_name: server_auth_debug
+    build:
+      dockerfile: debug.Dockerfile
+    ports:
+      - "11001:11001"
+      - "40001:40001"
+    restart: always
+    volumes:
+      - ./:/app
+    networks:
+      - banking-system
+
   pg-auth:
     image: postgres:15-alpine3.18
     environment:
@@ -35,17 +72,6 @@ services:
     image: redis
     ports:
       - "${REDIS_PORT}:6379"
-    networks:
-      - banking-system
-
-  migrator-auth:
-    build:
-      context: .
-      dockerfile: migration.Dockerfile
-    restart: on-failure
-    depends_on:
-      - pg-auth
-      - pg-test-auth
     networks:
       - banking-system
 
