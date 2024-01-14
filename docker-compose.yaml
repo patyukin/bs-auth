@@ -1,0 +1,54 @@
+version: "3.8"
+
+volumes:
+  pg_volume:
+  pg_test_volume:
+
+services:
+  server-auth-deploy:
+    container_name: server_auth_deploy
+    build:
+      dockerfile: go.Dockerfile
+    ports:
+      - "11011:11011"
+    restart: always
+    networks:
+      - banking-system
+
+  pg-auth:
+    image: postgres:15-alpine3.18
+    environment:
+      - "POSTGRES_DB=${PG_DB_NAME}"
+      - "POSTGRES_USER=${PG_USER}"
+      - "POSTGRES_PASSWORD=${PG_PASSWORD}"
+    ports:
+      - "${PG_PORT}:5432"
+    volumes:
+      - pg_volume:/var/lib/postgresql/data
+    networks:
+      - banking-system
+
+  pg-test-auth:
+    image: postgres:15-alpine3.18
+    environment:
+      - "POSTGRES_DB=${PG_DB_NAME}"
+      - "POSTGRES_USER=${PG_USER}"
+      - "POSTGRES_PASSWORD=${PG_PASSWORD}"
+    ports:
+      - "${PG_PORT_TEST}:5432"
+    volumes:
+      - pg_test_volume:/var/lib/postgresql/data
+    networks:
+      - banking-system
+
+  redis-auth:
+    image: redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    networks:
+      - banking-system
+
+networks:
+  banking-system:
+    name: banking-system
+    external: true
