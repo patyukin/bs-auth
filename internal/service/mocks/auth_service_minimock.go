@@ -19,8 +19,20 @@ import (
 type AuthServiceMock struct {
 	t minimock.Tester
 
-	funcSignIn          func(ctx context.Context, params *model.User) (ap1 *desc.AuthResponse, err error)
-	inspectFuncSignIn   func(ctx context.Context, params *model.User)
+	funcCheckCode          func(ctx context.Context, req *model.CheckCodeRequest) (i1 int64, err error)
+	inspectFuncCheckCode   func(ctx context.Context, req *model.CheckCodeRequest)
+	afterCheckCodeCounter  uint64
+	beforeCheckCodeCounter uint64
+	CheckCodeMock          mAuthServiceMockCheckCode
+
+	funcSaveSession          func(ctx context.Context, userId int64, AuthTokenSignKey string) (tp1 *model.Tokens, err error)
+	inspectFuncSaveSession   func(ctx context.Context, userId int64, AuthTokenSignKey string)
+	afterSaveSessionCounter  uint64
+	beforeSaveSessionCounter uint64
+	SaveSessionMock          mAuthServiceMockSaveSession
+
+	funcSignIn          func(ctx context.Context, params *model.User, fingerprint string) (sp1 *desc.SignInResponse, err error)
+	inspectFuncSignIn   func(ctx context.Context, params *model.User, fingerprint string)
 	afterSignInCounter  uint64
 	beforeSignInCounter uint64
 	SignInMock          mAuthServiceMockSignIn
@@ -33,10 +45,451 @@ func NewAuthServiceMock(t minimock.Tester) *AuthServiceMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.CheckCodeMock = mAuthServiceMockCheckCode{mock: m}
+	m.CheckCodeMock.callArgs = []*AuthServiceMockCheckCodeParams{}
+
+	m.SaveSessionMock = mAuthServiceMockSaveSession{mock: m}
+	m.SaveSessionMock.callArgs = []*AuthServiceMockSaveSessionParams{}
+
 	m.SignInMock = mAuthServiceMockSignIn{mock: m}
 	m.SignInMock.callArgs = []*AuthServiceMockSignInParams{}
 
 	return m
+}
+
+type mAuthServiceMockCheckCode struct {
+	mock               *AuthServiceMock
+	defaultExpectation *AuthServiceMockCheckCodeExpectation
+	expectations       []*AuthServiceMockCheckCodeExpectation
+
+	callArgs []*AuthServiceMockCheckCodeParams
+	mutex    sync.RWMutex
+}
+
+// AuthServiceMockCheckCodeExpectation specifies expectation struct of the AuthService.CheckCode
+type AuthServiceMockCheckCodeExpectation struct {
+	mock    *AuthServiceMock
+	params  *AuthServiceMockCheckCodeParams
+	results *AuthServiceMockCheckCodeResults
+	Counter uint64
+}
+
+// AuthServiceMockCheckCodeParams contains parameters of the AuthService.CheckCode
+type AuthServiceMockCheckCodeParams struct {
+	ctx context.Context
+	req *model.CheckCodeRequest
+}
+
+// AuthServiceMockCheckCodeResults contains results of the AuthService.CheckCode
+type AuthServiceMockCheckCodeResults struct {
+	i1  int64
+	err error
+}
+
+// Expect sets up expected params for AuthService.CheckCode
+func (mmCheckCode *mAuthServiceMockCheckCode) Expect(ctx context.Context, req *model.CheckCodeRequest) *mAuthServiceMockCheckCode {
+	if mmCheckCode.mock.funcCheckCode != nil {
+		mmCheckCode.mock.t.Fatalf("AuthServiceMock.CheckCode mock is already set by Set")
+	}
+
+	if mmCheckCode.defaultExpectation == nil {
+		mmCheckCode.defaultExpectation = &AuthServiceMockCheckCodeExpectation{}
+	}
+
+	mmCheckCode.defaultExpectation.params = &AuthServiceMockCheckCodeParams{ctx, req}
+	for _, e := range mmCheckCode.expectations {
+		if minimock.Equal(e.params, mmCheckCode.defaultExpectation.params) {
+			mmCheckCode.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCheckCode.defaultExpectation.params)
+		}
+	}
+
+	return mmCheckCode
+}
+
+// Inspect accepts an inspector function that has same arguments as the AuthService.CheckCode
+func (mmCheckCode *mAuthServiceMockCheckCode) Inspect(f func(ctx context.Context, req *model.CheckCodeRequest)) *mAuthServiceMockCheckCode {
+	if mmCheckCode.mock.inspectFuncCheckCode != nil {
+		mmCheckCode.mock.t.Fatalf("Inspect function is already set for AuthServiceMock.CheckCode")
+	}
+
+	mmCheckCode.mock.inspectFuncCheckCode = f
+
+	return mmCheckCode
+}
+
+// Return sets up results that will be returned by AuthService.CheckCode
+func (mmCheckCode *mAuthServiceMockCheckCode) Return(i1 int64, err error) *AuthServiceMock {
+	if mmCheckCode.mock.funcCheckCode != nil {
+		mmCheckCode.mock.t.Fatalf("AuthServiceMock.CheckCode mock is already set by Set")
+	}
+
+	if mmCheckCode.defaultExpectation == nil {
+		mmCheckCode.defaultExpectation = &AuthServiceMockCheckCodeExpectation{mock: mmCheckCode.mock}
+	}
+	mmCheckCode.defaultExpectation.results = &AuthServiceMockCheckCodeResults{i1, err}
+	return mmCheckCode.mock
+}
+
+// Set uses given function f to mock the AuthService.CheckCode method
+func (mmCheckCode *mAuthServiceMockCheckCode) Set(f func(ctx context.Context, req *model.CheckCodeRequest) (i1 int64, err error)) *AuthServiceMock {
+	if mmCheckCode.defaultExpectation != nil {
+		mmCheckCode.mock.t.Fatalf("Default expectation is already set for the AuthService.CheckCode method")
+	}
+
+	if len(mmCheckCode.expectations) > 0 {
+		mmCheckCode.mock.t.Fatalf("Some expectations are already set for the AuthService.CheckCode method")
+	}
+
+	mmCheckCode.mock.funcCheckCode = f
+	return mmCheckCode.mock
+}
+
+// When sets expectation for the AuthService.CheckCode which will trigger the result defined by the following
+// Then helper
+func (mmCheckCode *mAuthServiceMockCheckCode) When(ctx context.Context, req *model.CheckCodeRequest) *AuthServiceMockCheckCodeExpectation {
+	if mmCheckCode.mock.funcCheckCode != nil {
+		mmCheckCode.mock.t.Fatalf("AuthServiceMock.CheckCode mock is already set by Set")
+	}
+
+	expectation := &AuthServiceMockCheckCodeExpectation{
+		mock:   mmCheckCode.mock,
+		params: &AuthServiceMockCheckCodeParams{ctx, req},
+	}
+	mmCheckCode.expectations = append(mmCheckCode.expectations, expectation)
+	return expectation
+}
+
+// Then sets up AuthService.CheckCode return parameters for the expectation previously defined by the When method
+func (e *AuthServiceMockCheckCodeExpectation) Then(i1 int64, err error) *AuthServiceMock {
+	e.results = &AuthServiceMockCheckCodeResults{i1, err}
+	return e.mock
+}
+
+// CheckCode implements service.AuthService
+func (mmCheckCode *AuthServiceMock) CheckCode(ctx context.Context, req *model.CheckCodeRequest) (i1 int64, err error) {
+	mm_atomic.AddUint64(&mmCheckCode.beforeCheckCodeCounter, 1)
+	defer mm_atomic.AddUint64(&mmCheckCode.afterCheckCodeCounter, 1)
+
+	if mmCheckCode.inspectFuncCheckCode != nil {
+		mmCheckCode.inspectFuncCheckCode(ctx, req)
+	}
+
+	mm_params := &AuthServiceMockCheckCodeParams{ctx, req}
+
+	// Record call args
+	mmCheckCode.CheckCodeMock.mutex.Lock()
+	mmCheckCode.CheckCodeMock.callArgs = append(mmCheckCode.CheckCodeMock.callArgs, mm_params)
+	mmCheckCode.CheckCodeMock.mutex.Unlock()
+
+	for _, e := range mmCheckCode.CheckCodeMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1, e.results.err
+		}
+	}
+
+	if mmCheckCode.CheckCodeMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCheckCode.CheckCodeMock.defaultExpectation.Counter, 1)
+		mm_want := mmCheckCode.CheckCodeMock.defaultExpectation.params
+		mm_got := AuthServiceMockCheckCodeParams{ctx, req}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCheckCode.t.Errorf("AuthServiceMock.CheckCode got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCheckCode.CheckCodeMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCheckCode.t.Fatal("No results are set for the AuthServiceMock.CheckCode")
+		}
+		return (*mm_results).i1, (*mm_results).err
+	}
+	if mmCheckCode.funcCheckCode != nil {
+		return mmCheckCode.funcCheckCode(ctx, req)
+	}
+	mmCheckCode.t.Fatalf("Unexpected call to AuthServiceMock.CheckCode. %v %v", ctx, req)
+	return
+}
+
+// CheckCodeAfterCounter returns a count of finished AuthServiceMock.CheckCode invocations
+func (mmCheckCode *AuthServiceMock) CheckCodeAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCheckCode.afterCheckCodeCounter)
+}
+
+// CheckCodeBeforeCounter returns a count of AuthServiceMock.CheckCode invocations
+func (mmCheckCode *AuthServiceMock) CheckCodeBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCheckCode.beforeCheckCodeCounter)
+}
+
+// Calls returns a list of arguments used in each call to AuthServiceMock.CheckCode.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCheckCode *mAuthServiceMockCheckCode) Calls() []*AuthServiceMockCheckCodeParams {
+	mmCheckCode.mutex.RLock()
+
+	argCopy := make([]*AuthServiceMockCheckCodeParams, len(mmCheckCode.callArgs))
+	copy(argCopy, mmCheckCode.callArgs)
+
+	mmCheckCode.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCheckCodeDone returns true if the count of the CheckCode invocations corresponds
+// the number of defined expectations
+func (m *AuthServiceMock) MinimockCheckCodeDone() bool {
+	for _, e := range m.CheckCodeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CheckCodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCheckCodeCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCheckCode != nil && mm_atomic.LoadUint64(&m.afterCheckCodeCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCheckCodeInspect logs each unmet expectation
+func (m *AuthServiceMock) MinimockCheckCodeInspect() {
+	for _, e := range m.CheckCodeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AuthServiceMock.CheckCode with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CheckCodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCheckCodeCounter) < 1 {
+		if m.CheckCodeMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to AuthServiceMock.CheckCode")
+		} else {
+			m.t.Errorf("Expected call to AuthServiceMock.CheckCode with params: %#v", *m.CheckCodeMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCheckCode != nil && mm_atomic.LoadUint64(&m.afterCheckCodeCounter) < 1 {
+		m.t.Error("Expected call to AuthServiceMock.CheckCode")
+	}
+}
+
+type mAuthServiceMockSaveSession struct {
+	mock               *AuthServiceMock
+	defaultExpectation *AuthServiceMockSaveSessionExpectation
+	expectations       []*AuthServiceMockSaveSessionExpectation
+
+	callArgs []*AuthServiceMockSaveSessionParams
+	mutex    sync.RWMutex
+}
+
+// AuthServiceMockSaveSessionExpectation specifies expectation struct of the AuthService.SaveSession
+type AuthServiceMockSaveSessionExpectation struct {
+	mock    *AuthServiceMock
+	params  *AuthServiceMockSaveSessionParams
+	results *AuthServiceMockSaveSessionResults
+	Counter uint64
+}
+
+// AuthServiceMockSaveSessionParams contains parameters of the AuthService.SaveSession
+type AuthServiceMockSaveSessionParams struct {
+	ctx              context.Context
+	userId           int64
+	AuthTokenSignKey string
+}
+
+// AuthServiceMockSaveSessionResults contains results of the AuthService.SaveSession
+type AuthServiceMockSaveSessionResults struct {
+	tp1 *model.Tokens
+	err error
+}
+
+// Expect sets up expected params for AuthService.SaveSession
+func (mmSaveSession *mAuthServiceMockSaveSession) Expect(ctx context.Context, userId int64, AuthTokenSignKey string) *mAuthServiceMockSaveSession {
+	if mmSaveSession.mock.funcSaveSession != nil {
+		mmSaveSession.mock.t.Fatalf("AuthServiceMock.SaveSession mock is already set by Set")
+	}
+
+	if mmSaveSession.defaultExpectation == nil {
+		mmSaveSession.defaultExpectation = &AuthServiceMockSaveSessionExpectation{}
+	}
+
+	mmSaveSession.defaultExpectation.params = &AuthServiceMockSaveSessionParams{ctx, userId, AuthTokenSignKey}
+	for _, e := range mmSaveSession.expectations {
+		if minimock.Equal(e.params, mmSaveSession.defaultExpectation.params) {
+			mmSaveSession.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSaveSession.defaultExpectation.params)
+		}
+	}
+
+	return mmSaveSession
+}
+
+// Inspect accepts an inspector function that has same arguments as the AuthService.SaveSession
+func (mmSaveSession *mAuthServiceMockSaveSession) Inspect(f func(ctx context.Context, userId int64, AuthTokenSignKey string)) *mAuthServiceMockSaveSession {
+	if mmSaveSession.mock.inspectFuncSaveSession != nil {
+		mmSaveSession.mock.t.Fatalf("Inspect function is already set for AuthServiceMock.SaveSession")
+	}
+
+	mmSaveSession.mock.inspectFuncSaveSession = f
+
+	return mmSaveSession
+}
+
+// Return sets up results that will be returned by AuthService.SaveSession
+func (mmSaveSession *mAuthServiceMockSaveSession) Return(tp1 *model.Tokens, err error) *AuthServiceMock {
+	if mmSaveSession.mock.funcSaveSession != nil {
+		mmSaveSession.mock.t.Fatalf("AuthServiceMock.SaveSession mock is already set by Set")
+	}
+
+	if mmSaveSession.defaultExpectation == nil {
+		mmSaveSession.defaultExpectation = &AuthServiceMockSaveSessionExpectation{mock: mmSaveSession.mock}
+	}
+	mmSaveSession.defaultExpectation.results = &AuthServiceMockSaveSessionResults{tp1, err}
+	return mmSaveSession.mock
+}
+
+// Set uses given function f to mock the AuthService.SaveSession method
+func (mmSaveSession *mAuthServiceMockSaveSession) Set(f func(ctx context.Context, userId int64, AuthTokenSignKey string) (tp1 *model.Tokens, err error)) *AuthServiceMock {
+	if mmSaveSession.defaultExpectation != nil {
+		mmSaveSession.mock.t.Fatalf("Default expectation is already set for the AuthService.SaveSession method")
+	}
+
+	if len(mmSaveSession.expectations) > 0 {
+		mmSaveSession.mock.t.Fatalf("Some expectations are already set for the AuthService.SaveSession method")
+	}
+
+	mmSaveSession.mock.funcSaveSession = f
+	return mmSaveSession.mock
+}
+
+// When sets expectation for the AuthService.SaveSession which will trigger the result defined by the following
+// Then helper
+func (mmSaveSession *mAuthServiceMockSaveSession) When(ctx context.Context, userId int64, AuthTokenSignKey string) *AuthServiceMockSaveSessionExpectation {
+	if mmSaveSession.mock.funcSaveSession != nil {
+		mmSaveSession.mock.t.Fatalf("AuthServiceMock.SaveSession mock is already set by Set")
+	}
+
+	expectation := &AuthServiceMockSaveSessionExpectation{
+		mock:   mmSaveSession.mock,
+		params: &AuthServiceMockSaveSessionParams{ctx, userId, AuthTokenSignKey},
+	}
+	mmSaveSession.expectations = append(mmSaveSession.expectations, expectation)
+	return expectation
+}
+
+// Then sets up AuthService.SaveSession return parameters for the expectation previously defined by the When method
+func (e *AuthServiceMockSaveSessionExpectation) Then(tp1 *model.Tokens, err error) *AuthServiceMock {
+	e.results = &AuthServiceMockSaveSessionResults{tp1, err}
+	return e.mock
+}
+
+// SaveSession implements service.AuthService
+func (mmSaveSession *AuthServiceMock) SaveSession(ctx context.Context, userId int64, AuthTokenSignKey string) (tp1 *model.Tokens, err error) {
+	mm_atomic.AddUint64(&mmSaveSession.beforeSaveSessionCounter, 1)
+	defer mm_atomic.AddUint64(&mmSaveSession.afterSaveSessionCounter, 1)
+
+	if mmSaveSession.inspectFuncSaveSession != nil {
+		mmSaveSession.inspectFuncSaveSession(ctx, userId, AuthTokenSignKey)
+	}
+
+	mm_params := &AuthServiceMockSaveSessionParams{ctx, userId, AuthTokenSignKey}
+
+	// Record call args
+	mmSaveSession.SaveSessionMock.mutex.Lock()
+	mmSaveSession.SaveSessionMock.callArgs = append(mmSaveSession.SaveSessionMock.callArgs, mm_params)
+	mmSaveSession.SaveSessionMock.mutex.Unlock()
+
+	for _, e := range mmSaveSession.SaveSessionMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.tp1, e.results.err
+		}
+	}
+
+	if mmSaveSession.SaveSessionMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSaveSession.SaveSessionMock.defaultExpectation.Counter, 1)
+		mm_want := mmSaveSession.SaveSessionMock.defaultExpectation.params
+		mm_got := AuthServiceMockSaveSessionParams{ctx, userId, AuthTokenSignKey}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSaveSession.t.Errorf("AuthServiceMock.SaveSession got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSaveSession.SaveSessionMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSaveSession.t.Fatal("No results are set for the AuthServiceMock.SaveSession")
+		}
+		return (*mm_results).tp1, (*mm_results).err
+	}
+	if mmSaveSession.funcSaveSession != nil {
+		return mmSaveSession.funcSaveSession(ctx, userId, AuthTokenSignKey)
+	}
+	mmSaveSession.t.Fatalf("Unexpected call to AuthServiceMock.SaveSession. %v %v %v", ctx, userId, AuthTokenSignKey)
+	return
+}
+
+// SaveSessionAfterCounter returns a count of finished AuthServiceMock.SaveSession invocations
+func (mmSaveSession *AuthServiceMock) SaveSessionAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSaveSession.afterSaveSessionCounter)
+}
+
+// SaveSessionBeforeCounter returns a count of AuthServiceMock.SaveSession invocations
+func (mmSaveSession *AuthServiceMock) SaveSessionBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSaveSession.beforeSaveSessionCounter)
+}
+
+// Calls returns a list of arguments used in each call to AuthServiceMock.SaveSession.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSaveSession *mAuthServiceMockSaveSession) Calls() []*AuthServiceMockSaveSessionParams {
+	mmSaveSession.mutex.RLock()
+
+	argCopy := make([]*AuthServiceMockSaveSessionParams, len(mmSaveSession.callArgs))
+	copy(argCopy, mmSaveSession.callArgs)
+
+	mmSaveSession.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSaveSessionDone returns true if the count of the SaveSession invocations corresponds
+// the number of defined expectations
+func (m *AuthServiceMock) MinimockSaveSessionDone() bool {
+	for _, e := range m.SaveSessionMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SaveSessionMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSaveSessionCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSaveSession != nil && mm_atomic.LoadUint64(&m.afterSaveSessionCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockSaveSessionInspect logs each unmet expectation
+func (m *AuthServiceMock) MinimockSaveSessionInspect() {
+	for _, e := range m.SaveSessionMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AuthServiceMock.SaveSession with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SaveSessionMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSaveSessionCounter) < 1 {
+		if m.SaveSessionMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to AuthServiceMock.SaveSession")
+		} else {
+			m.t.Errorf("Expected call to AuthServiceMock.SaveSession with params: %#v", *m.SaveSessionMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSaveSession != nil && mm_atomic.LoadUint64(&m.afterSaveSessionCounter) < 1 {
+		m.t.Error("Expected call to AuthServiceMock.SaveSession")
+	}
 }
 
 type mAuthServiceMockSignIn struct {
@@ -58,18 +511,19 @@ type AuthServiceMockSignInExpectation struct {
 
 // AuthServiceMockSignInParams contains parameters of the AuthService.SignIn
 type AuthServiceMockSignInParams struct {
-	ctx    context.Context
-	params *model.User
+	ctx         context.Context
+	params      *model.User
+	fingerprint string
 }
 
 // AuthServiceMockSignInResults contains results of the AuthService.SignIn
 type AuthServiceMockSignInResults struct {
-	ap1 *desc.AuthResponse
+	sp1 *desc.SignInResponse
 	err error
 }
 
 // Expect sets up expected params for AuthService.SignIn
-func (mmSignIn *mAuthServiceMockSignIn) Expect(ctx context.Context, params *model.User) *mAuthServiceMockSignIn {
+func (mmSignIn *mAuthServiceMockSignIn) Expect(ctx context.Context, params *model.User, fingerprint string) *mAuthServiceMockSignIn {
 	if mmSignIn.mock.funcSignIn != nil {
 		mmSignIn.mock.t.Fatalf("AuthServiceMock.SignIn mock is already set by Set")
 	}
@@ -78,7 +532,7 @@ func (mmSignIn *mAuthServiceMockSignIn) Expect(ctx context.Context, params *mode
 		mmSignIn.defaultExpectation = &AuthServiceMockSignInExpectation{}
 	}
 
-	mmSignIn.defaultExpectation.params = &AuthServiceMockSignInParams{ctx, params}
+	mmSignIn.defaultExpectation.params = &AuthServiceMockSignInParams{ctx, params, fingerprint}
 	for _, e := range mmSignIn.expectations {
 		if minimock.Equal(e.params, mmSignIn.defaultExpectation.params) {
 			mmSignIn.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSignIn.defaultExpectation.params)
@@ -89,7 +543,7 @@ func (mmSignIn *mAuthServiceMockSignIn) Expect(ctx context.Context, params *mode
 }
 
 // Inspect accepts an inspector function that has same arguments as the AuthService.SignIn
-func (mmSignIn *mAuthServiceMockSignIn) Inspect(f func(ctx context.Context, params *model.User)) *mAuthServiceMockSignIn {
+func (mmSignIn *mAuthServiceMockSignIn) Inspect(f func(ctx context.Context, params *model.User, fingerprint string)) *mAuthServiceMockSignIn {
 	if mmSignIn.mock.inspectFuncSignIn != nil {
 		mmSignIn.mock.t.Fatalf("Inspect function is already set for AuthServiceMock.SignIn")
 	}
@@ -100,7 +554,7 @@ func (mmSignIn *mAuthServiceMockSignIn) Inspect(f func(ctx context.Context, para
 }
 
 // Return sets up results that will be returned by AuthService.SignIn
-func (mmSignIn *mAuthServiceMockSignIn) Return(ap1 *desc.AuthResponse, err error) *AuthServiceMock {
+func (mmSignIn *mAuthServiceMockSignIn) Return(sp1 *desc.SignInResponse, err error) *AuthServiceMock {
 	if mmSignIn.mock.funcSignIn != nil {
 		mmSignIn.mock.t.Fatalf("AuthServiceMock.SignIn mock is already set by Set")
 	}
@@ -108,12 +562,12 @@ func (mmSignIn *mAuthServiceMockSignIn) Return(ap1 *desc.AuthResponse, err error
 	if mmSignIn.defaultExpectation == nil {
 		mmSignIn.defaultExpectation = &AuthServiceMockSignInExpectation{mock: mmSignIn.mock}
 	}
-	mmSignIn.defaultExpectation.results = &AuthServiceMockSignInResults{ap1, err}
+	mmSignIn.defaultExpectation.results = &AuthServiceMockSignInResults{sp1, err}
 	return mmSignIn.mock
 }
 
 // Set uses given function f to mock the AuthService.SignIn method
-func (mmSignIn *mAuthServiceMockSignIn) Set(f func(ctx context.Context, params *model.User) (ap1 *desc.AuthResponse, err error)) *AuthServiceMock {
+func (mmSignIn *mAuthServiceMockSignIn) Set(f func(ctx context.Context, params *model.User, fingerprint string) (sp1 *desc.SignInResponse, err error)) *AuthServiceMock {
 	if mmSignIn.defaultExpectation != nil {
 		mmSignIn.mock.t.Fatalf("Default expectation is already set for the AuthService.SignIn method")
 	}
@@ -128,35 +582,35 @@ func (mmSignIn *mAuthServiceMockSignIn) Set(f func(ctx context.Context, params *
 
 // When sets expectation for the AuthService.SignIn which will trigger the result defined by the following
 // Then helper
-func (mmSignIn *mAuthServiceMockSignIn) When(ctx context.Context, params *model.User) *AuthServiceMockSignInExpectation {
+func (mmSignIn *mAuthServiceMockSignIn) When(ctx context.Context, params *model.User, fingerprint string) *AuthServiceMockSignInExpectation {
 	if mmSignIn.mock.funcSignIn != nil {
 		mmSignIn.mock.t.Fatalf("AuthServiceMock.SignIn mock is already set by Set")
 	}
 
 	expectation := &AuthServiceMockSignInExpectation{
 		mock:   mmSignIn.mock,
-		params: &AuthServiceMockSignInParams{ctx, params},
+		params: &AuthServiceMockSignInParams{ctx, params, fingerprint},
 	}
 	mmSignIn.expectations = append(mmSignIn.expectations, expectation)
 	return expectation
 }
 
 // Then sets up AuthService.SignIn return parameters for the expectation previously defined by the When method
-func (e *AuthServiceMockSignInExpectation) Then(ap1 *desc.AuthResponse, err error) *AuthServiceMock {
-	e.results = &AuthServiceMockSignInResults{ap1, err}
+func (e *AuthServiceMockSignInExpectation) Then(sp1 *desc.SignInResponse, err error) *AuthServiceMock {
+	e.results = &AuthServiceMockSignInResults{sp1, err}
 	return e.mock
 }
 
 // SignIn implements service.AuthService
-func (mmSignIn *AuthServiceMock) SignIn(ctx context.Context, params *model.User) (ap1 *desc.AuthResponse, err error) {
+func (mmSignIn *AuthServiceMock) SignIn(ctx context.Context, params *model.User, fingerprint string) (sp1 *desc.SignInResponse, err error) {
 	mm_atomic.AddUint64(&mmSignIn.beforeSignInCounter, 1)
 	defer mm_atomic.AddUint64(&mmSignIn.afterSignInCounter, 1)
 
 	if mmSignIn.inspectFuncSignIn != nil {
-		mmSignIn.inspectFuncSignIn(ctx, params)
+		mmSignIn.inspectFuncSignIn(ctx, params, fingerprint)
 	}
 
-	mm_params := &AuthServiceMockSignInParams{ctx, params}
+	mm_params := &AuthServiceMockSignInParams{ctx, params, fingerprint}
 
 	// Record call args
 	mmSignIn.SignInMock.mutex.Lock()
@@ -166,14 +620,14 @@ func (mmSignIn *AuthServiceMock) SignIn(ctx context.Context, params *model.User)
 	for _, e := range mmSignIn.SignInMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.ap1, e.results.err
+			return e.results.sp1, e.results.err
 		}
 	}
 
 	if mmSignIn.SignInMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmSignIn.SignInMock.defaultExpectation.Counter, 1)
 		mm_want := mmSignIn.SignInMock.defaultExpectation.params
-		mm_got := AuthServiceMockSignInParams{ctx, params}
+		mm_got := AuthServiceMockSignInParams{ctx, params, fingerprint}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmSignIn.t.Errorf("AuthServiceMock.SignIn got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -182,12 +636,12 @@ func (mmSignIn *AuthServiceMock) SignIn(ctx context.Context, params *model.User)
 		if mm_results == nil {
 			mmSignIn.t.Fatal("No results are set for the AuthServiceMock.SignIn")
 		}
-		return (*mm_results).ap1, (*mm_results).err
+		return (*mm_results).sp1, (*mm_results).err
 	}
 	if mmSignIn.funcSignIn != nil {
-		return mmSignIn.funcSignIn(ctx, params)
+		return mmSignIn.funcSignIn(ctx, params, fingerprint)
 	}
-	mmSignIn.t.Fatalf("Unexpected call to AuthServiceMock.SignIn. %v %v", ctx, params)
+	mmSignIn.t.Fatalf("Unexpected call to AuthServiceMock.SignIn. %v %v %v", ctx, params, fingerprint)
 	return
 }
 
@@ -259,6 +713,10 @@ func (m *AuthServiceMock) MinimockSignInInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *AuthServiceMock) MinimockFinish() {
 	if !m.minimockDone() {
+		m.MinimockCheckCodeInspect()
+
+		m.MinimockSaveSessionInspect()
+
 		m.MinimockSignInInspect()
 		m.t.FailNow()
 	}
@@ -283,5 +741,7 @@ func (m *AuthServiceMock) MinimockWait(timeout mm_time.Duration) {
 func (m *AuthServiceMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockCheckCodeDone() &&
+		m.MinimockSaveSessionDone() &&
 		m.MinimockSignInDone()
 }

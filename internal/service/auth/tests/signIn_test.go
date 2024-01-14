@@ -24,23 +24,23 @@ func Test_SignIn(t *testing.T) {
 
 	type args struct {
 		ctx context.Context
-		req *desc.AuthRequest
+		req *desc.SignInRequest
 	}
 
 	var (
 		ctx = context.Background()
 		mc  = minimock.NewController(t)
 
-		email        = gofakeit.Email()
-		password     = gofakeit.Password(true, true, true, true, false, 10)
-		accessToken  = gofakeit.UUID()
-		refreshToken = gofakeit.UUID()
+		email      = gofakeit.Email()
+		password   = gofakeit.Password(true, true, true, true, false, 10)
+		Base32     = gofakeit.UUID()
+		OtpAuthUrl = gofakeit.UUID()
 
 		hashPassword, _ = bcrypt.GenerateFromPassword([]byte(password), 2)
 
 		serviceErr = fmt.Errorf("service error")
 
-		req = &desc.AuthRequest{
+		req = &desc.SignInRequest{
 			Email:    email,
 			Password: password,
 		}
@@ -54,9 +54,9 @@ func Test_SignIn(t *testing.T) {
 			UpdatedAt:       time.Time{},
 		}
 
-		res = &desc.AuthResponse{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
+		res = &desc.SignInResponse{
+			Base32:     Base32,
+			OtpAuthUrl: OtpAuthUrl,
 		}
 	)
 
@@ -65,7 +65,7 @@ func Test_SignIn(t *testing.T) {
 	tests := []struct {
 		name            string
 		args            args
-		want            *desc.AuthResponse
+		want            *desc.SignInResponse
 		err             error
 		authServiceMock authServiceMockFunc
 		userServiceMock userServiceMockFunc
@@ -80,7 +80,7 @@ func Test_SignIn(t *testing.T) {
 			err:  nil,
 			authServiceMock: func(mc *minimock.Controller) service.AuthService {
 				mock := serviceMocks.NewAuthServiceMock(mc)
-				mock.SignInMock.Expect(ctx, user).Return(res, nil)
+				mock.SignInMock.Expect(ctx, user, "fingerprint").Return(res, nil)
 
 				return mock
 			},
@@ -101,7 +101,7 @@ func Test_SignIn(t *testing.T) {
 			err:  serviceErr,
 			authServiceMock: func(mc *minimock.Controller) service.AuthService {
 				mock := serviceMocks.NewAuthServiceMock(mc)
-				mock.SignInMock.Expect(ctx, user).Return(res, nil)
+				mock.SignInMock.Expect(ctx, user, "fingerprint").Return(res, nil)
 
 				return mock
 			},
@@ -121,7 +121,7 @@ func Test_SignIn(t *testing.T) {
 
 			authServiceMock := tt.authServiceMock(mc)
 			userServiceMock := tt.userServiceMock(mc)
-			api := auth.NewImplementation(authServiceMock, userServiceMock)
+			api := auth.NewImplementation(authServiceMock, userServiceMock, nil, nil)
 
 			response, err := api.SignIn(tt.args.ctx, tt.args.req)
 			require.Equal(t, tt.err, err)

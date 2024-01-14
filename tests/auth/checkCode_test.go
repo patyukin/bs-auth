@@ -52,8 +52,7 @@ func (s *SignInGRPCTestSuite) TestAuthCheckCode() {
 		OtpSecret:  totpKey.Secret(),
 	}
 
-	// key for fingerprint
-	// key = fingerprint:sdlkfjklsdf
+	// key for fingerprint = fingerprint:anykey
 	fpKey := fmt.Sprintf("fingerprint:%s", fingerprint)
 	fpValue, err := json.Marshal(otpHashRedis)
 	s.Require().NoError(err)

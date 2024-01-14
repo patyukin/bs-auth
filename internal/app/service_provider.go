@@ -7,7 +7,9 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/patyukin/bs-auth/internal/cacher"
 	"github.com/patyukin/bs-auth/internal/cacher/redis"
+	"github.com/patyukin/bs-auth/internal/ratelimiter"
 	"log"
+	"log/slog"
 
 	"github.com/patyukin/bs-auth/internal/api/auth"
 	"github.com/patyukin/bs-auth/internal/api/user"
@@ -29,7 +31,8 @@ import (
 
 type serviceProvider struct {
 	config *config.Config
-	// logger
+	logger *slog.Logger
+	rl     *ratelimiter.RequestCounter
 
 	dbClient  db.Client
 	txManager db.TxManager
@@ -46,9 +49,11 @@ type serviceProvider struct {
 	cacher   *redis.RedisClient
 }
 
-func newServiceProvider(cfg *config.Config) *serviceProvider {
+func newServiceProvider(cfg *config.Config, logger *slog.Logger, rl *ratelimiter.RequestCounter) *serviceProvider {
 	return &serviceProvider{
 		config: cfg,
+		logger: logger,
+		rl:     rl,
 	}
 }
 
@@ -178,7 +183,7 @@ func (s *serviceProvider) Cacher(_ context.Context) cacher.Cacher {
 
 func (s *serviceProvider) AuthImpl(ctx context.Context) *auth.Implementation {
 	if s.authImpl == nil {
-		s.authImpl = auth.NewImplementation(s.AuthService(ctx), s.UserService(ctx), s.config)
+		s.authImpl = auth.NewImplementation(s.AuthService(ctx), s.UserService(ctx), s.config, s.rl)
 	}
 
 	return s.authImpl

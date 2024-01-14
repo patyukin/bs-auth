@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/patyukin/bs-auth/internal/config"
+	"github.com/patyukin/bs-auth/internal/ratelimiter"
 	"io"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"sync"
@@ -31,10 +33,10 @@ type App struct {
 	swaggerServer   *http.Server
 }
 
-func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+func NewApp(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, error) {
 	a := &App{}
 
-	err := a.initDeps(ctx, cfg)
+	err := a.initDeps(ctx, cfg, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +87,8 @@ func (a *App) Run() error {
 	return nil
 }
 
-func (a *App) initDeps(ctx context.Context, cfg *config.Config) error {
-	inits := []func(context.Context, *config.Config) error{
+func (a *App) initDeps(ctx context.Context, cfg *config.Config, logger *slog.Logger) error {
+	inits := []func(context.Context, *config.Config, *slog.Logger) error{
 		a.initServiceProvider,
 		a.initGRPCServer,
 		a.initHTTPServer,
@@ -94,7 +96,7 @@ func (a *App) initDeps(ctx context.Context, cfg *config.Config) error {
 	}
 
 	for _, f := range inits {
-		err := f(ctx, cfg)
+		err := f(ctx, cfg, logger)
 		if err != nil {
 			return err
 		}
@@ -103,13 +105,13 @@ func (a *App) initDeps(ctx context.Context, cfg *config.Config) error {
 	return nil
 }
 
-func (a *App) initServiceProvider(_ context.Context, cfg *config.Config) error {
-	a.serviceProvider = newServiceProvider(cfg)
+func (a *App) initServiceProvider(_ context.Context, cfg *config.Config, logger *slog.Logger) error {
+	a.serviceProvider = newServiceProvider(cfg, logger, ratelimiter.NewRequestCounter())
 
 	return nil
 }
 
-func (a *App) initGRPCServer(ctx context.Context, _ *config.Config) error {
+func (a *App) initGRPCServer(ctx context.Context, _ *config.Config, logger *slog.Logger) error {
 	a.grpcServer = grpc.NewServer(
 		grpc.Creds(insecure.NewCredentials()),
 		grpc.UnaryInterceptor(interceptor.ValidateInterceptor),
@@ -119,11 +121,12 @@ func (a *App) initGRPCServer(ctx context.Context, _ *config.Config) error {
 
 	descUser.RegisterUserV1Server(a.grpcServer, a.serviceProvider.UserImpl(ctx))
 	descAuth.RegisterAuthV1Server(a.grpcServer, a.serviceProvider.AuthImpl(ctx))
+	logger.Info("gRPC server initialized")
 
 	return nil
 }
 
-func (a *App) initHTTPServer(ctx context.Context, cfg *config.Config) error {
+func (a *App) initHTTPServer(ctx context.Context, cfg *config.Config, logger *slog.Logger) error {
 	mux := runtime.NewServeMux()
 
 	opts := []grpc.DialOption{
@@ -153,11 +156,12 @@ func (a *App) initHTTPServer(ctx context.Context, cfg *config.Config) error {
 		Addr:    httpAddress,
 		Handler: corsMiddleware.Handler(mux),
 	}
+	logger.Info("HTTP server initialized")
 
 	return nil
 }
 
-func (a *App) initSwaggerServer(_ context.Context, cfg *config.Config) error {
+func (a *App) initSwaggerServer(_ context.Context, cfg *config.Config, logger *slog.Logger) error {
 	statikFs, err := fs.New()
 	if err != nil {
 		return err
@@ -165,13 +169,14 @@ func (a *App) initSwaggerServer(_ context.Context, cfg *config.Config) error {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.StripPrefix("/", http.FileServer(statikFs)))
-	mux.HandleFunc("/api.swagger.json", serveSwaggerFile("/api.swagger.json"))
+	mux.HandleFunc("/api.swagger.json", serveSwaggerFile("/api.swagger.json", logger))
 
 	swaggerAddress := cfg.Server.Swagger.Host + ":" + cfg.Server.Swagger.Port
 	a.swaggerServer = &http.Server{
 		Addr:    swaggerAddress,
 		Handler: mux,
 	}
+	logger.Info("Swagger server initialized")
 
 	return nil
 }
@@ -195,7 +200,7 @@ func (a *App) RunGRPCServer() error {
 
 func (a *App) runHTTPServer() error {
 	httpAddress := a.serviceProvider.config.Server.HTTP.Host + ":" + a.serviceProvider.config.Server.HTTP.Port
-	log.Printf("HTTP server is running on %s", httpAddress)
+	a.serviceProvider.logger.Info("HTTP server is running on %s", httpAddress)
 
 	err := a.httpServer.ListenAndServe()
 	if err != nil {
@@ -207,7 +212,7 @@ func (a *App) runHTTPServer() error {
 
 func (a *App) runSwaggerServer() error {
 	swaggerAddress := a.serviceProvider.config.Server.Swagger.Host + ":" + a.serviceProvider.config.Server.Swagger.Port
-	log.Printf("Swagger server is running on %s", swaggerAddress)
+	a.serviceProvider.logger.Info("Swagger server is running on %s", swaggerAddress)
 
 	err := a.swaggerServer.ListenAndServe()
 	if err != nil {
@@ -217,9 +222,9 @@ func (a *App) runSwaggerServer() error {
 	return nil
 }
 
-func serveSwaggerFile(path string) http.HandlerFunc {
+func serveSwaggerFile(path string, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Serving swagger file: %s", path)
+		logger.Info("Serving swagger file: %s", path)
 
 		statikFs, err := fs.New()
 		if err != nil {
@@ -227,16 +232,22 @@ func serveSwaggerFile(path string) http.HandlerFunc {
 			return
 		}
 
-		log.Printf("Open swagger file: %s", path)
+		logger.Info("Open swagger file: %s", path)
 
 		file, err := statikFs.Open(path)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		defer file.Close()
 
-		log.Printf("Read swagger file: %s", path)
+		defer func(file http.File) {
+			err = file.Close()
+			if err != nil {
+				logger.Info("Failed to close file: %s", path)
+			}
+		}(file)
+
+		logger.Info("Read swagger file: %s", path)
 
 		content, err := io.ReadAll(file)
 		if err != nil {
@@ -253,6 +264,6 @@ func serveSwaggerFile(path string) http.HandlerFunc {
 			return
 		}
 
-		log.Printf("Served swagger file: %s", path)
+		logger.Info("Served swagger file: %s", path)
 	}
 }

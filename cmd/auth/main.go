@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/patyukin/bs-auth/internal/config"
 	"log"
+	"log/slog"
+	"os"
 
 	"github.com/patyukin/bs-auth/internal/app"
 )
@@ -18,9 +20,11 @@ func main() {
 		log.Fatalf("failed to init config: %s", err.Error())
 	}
 
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	// logger init
 
-	a, err := app.NewApp(ctx, cfg)
+	a, err := app.NewApp(ctx, cfg, logger)
 	if err != nil {
 		log.Fatalf("failed to init app: %s", err.Error())
 	}

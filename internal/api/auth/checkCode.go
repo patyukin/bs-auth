@@ -6,10 +6,14 @@ import (
 	desc "github.com/patyukin/bs-auth/pkg/auth_v1"
 )
 
-// request => dto
+// CheckCode request => dto
 func (i *Implementation) CheckCode(ctx context.Context, req *desc.CheckCodeRequest) (*desc.CheckCodeResponse, error) {
-	// check code
-	// dto
+	key := req.GetFingerprint()
+	err := i.rl.Increment(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to increment counter: %w", err)
+	}
+
 	userId, err := i.authService.CheckCode(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check code: %w", err)

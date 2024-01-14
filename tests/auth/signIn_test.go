@@ -15,6 +15,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"log/slog"
+	"os"
 	"testing"
 	"time"
 )
@@ -36,7 +38,8 @@ func (s *SignInGRPCTestSuite) SetupTest() {
 		s.FailNow("Failed to init app: " + err.Error())
 	}
 
-	a, err := app.NewApp(ctx, cfg)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	a, err := app.NewApp(ctx, cfg, logger)
 	if err != nil {
 		log.Fatalf("failed to init app: %s", err.Error())
 	}
@@ -55,7 +58,7 @@ func (s *SignInGRPCTestSuite) SetupTest() {
 
 	s.client = desc.NewAuthV1Client(conn)
 
-	cl, err := pg.New(ctx, cfg.PG.DSN)
+	cl, _, err := pg.New(ctx, cfg.PG.DSN)
 	if err != nil {
 		log.Fatalf("failed to create db client: %v", err)
 	}
